@@ -2,21 +2,17 @@ getwd()
 
 experiment = 6
 
-sink(paste("C:/Users/Fiona.Sloof/Desktop/Thesis/Feb09/Results/Lasso/Lasso_", experiment,".txt", sep = ''))
+#sink(paste("C:/Users/Fiona.Sloof/Desktop/Thesis/Feb09/Results/Lasso/Lasso_", experiment,".txt", sep = ''))
 
-cRep=1000
+cRep=10
 
-for (u in 54:57)
+for (u in 1)
 {
 case = u
 
-setwd(paste("C:/Users/Fiona.Sloof/Desktop/Autometrics/GeneratedData/Case", case, sep = ''))
+setwd(paste("/Users/f/projects/masters-thesis/data/simulated data/Case", case, sep = ''))
 library(glmnet)
 set.seed(-1)
-
-
-
-
 
 
 #simulation design - open first spreadsheet to create results matrix
@@ -31,7 +27,7 @@ results = matrix(, nrow=nregressors, ncol =cRep)
 print(paste("This is LASSO case number", case))
 print(paste("There are", cRep, "repetitions in this simulation"))
 
-truepar = read.csv(paste("C:/Users/Fiona.Sloof/Desktop/Autometrics/GeneratedData/Case", case, "/TrueParValues.csv", sep = ''), stringsAsFactors = FALSE)
+truepar = read.csv(paste("/Users/f/projects/masters-thesis/data/simulated data/Case", case, "/TrueParValues.csv", sep = ''), stringsAsFactors = FALSE)
 ptm <- proc.time()
 
 #create matrix for calculating MSEs
