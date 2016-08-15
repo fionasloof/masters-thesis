@@ -5,13 +5,13 @@ library(glmnet)
 library(bsts)
 library(BoomSpikeSlab)
 	
-	cRep=10
+	cRep=1000
 	prob <- 0.15
-	sink(paste("C:/Users/Fiona.Sloof/Desktop/Thesis/Feb01/Results/BSTS_", experiment, ".txt", sep = ''), split=TRUE)
+	#sink(paste("C:/Users/Fiona.Sloof/Desktop/Thesis/Feb01/Results/BSTS_", experiment, ".txt", sep = ''), split=TRUE)
 	
 	
 
-for (u in 1:1)
+for (u in 1:10)
 {
 	
 	case = u
@@ -44,7 +44,7 @@ for (u in 1:1)
 	nregressors = ncol(data_rep1a)
 
 #create dataframe with true parameters
-	truepar = read.csv(paste("C:/Users/Fiona.Sloof/Desktop/Autometrics/GeneratedData/Case", case, "/TrueParValues.csv", sep = ''),stringsAsFactors = FALSE)
+	truepar = read.csv(paste("/Users/f/projects/masters-thesis/data/simulated data/Case", case, "/TrueParValues.csv", sep = ''),stringsAsFactors = FALSE)
 	delete1 = names(data_rep1) %in% c("X", "y")
 	truepardata = data_rep1[!delete1]
 	regressors = paste("x", colnames(truepardata), sep = '')
