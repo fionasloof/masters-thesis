@@ -21,23 +21,24 @@ main()
 	decl casenum =  1;
 	
 	decl w;
-	T = 100;										// Sample size (currently fixed for fixed regs)
+	T = 100;									// Sample size (currently fixed for fixed regs)
 	h = 20;										// Number of regressors
 	N = 5;										//Number of relevant regressors
 	cRep = 1000;								// Number of replications
 	p_a = 0.01;					  				// Reduction significance level
 	errcov = 0.9;
-	decl allcorr = FALSE;//Covariance between regressors
+	decl allcorr = FALSE;						//Covariance between regressors
 	errvar = 1;
 
-	if (casenum == 7 ||	casenum == 8 || casenum == 9 || casenum == 10 ||	casenum == 11 || casenum == 12 ||casenum == 19 ||	casenum == 20 || casenum == 21
-	||casenum == 22 ||	casenum == 23 || casenum == 24 || casenum == 25 || casenum == 26 || casenum==27 || casenum==28 ||
-	casenum==50||casenum==51||casenum==52||casenum==53||casenum==54||casenum==casenum==55||casenum==56||casenum==57)
+	if (casenum == 7 ||	casenum == 8  || casenum == 9  || casenum == 10 || casenum == 11 || casenum == 12 || casenum == 19 || casenum == 20
+	|| casenum == 21 || casenum == 22 || casenum == 23 || casenum == 24 || casenum == 25 || casenum == 26 || casenum == 27 || casenum == 28
+	|| casenum == 50 || casenum == 51 || casenum == 52 || casenum == 53 || casenum == 54 || casenum == 55 || casenum == 56 || casenum == 57)
 	{
 	 orthogonalregressors = FALSE;
 	}
 
-	if (casenum == 2 ||	casenum == 4 || casenum == 6 || casenum == 8 ||	casenum == 10 || casenum == 12 ||casenum == 14 ||	casenum == 16 || casenum == 18 ||casenum == 20 ||	casenum == 22 || casenum == 24 ||casenum==51||casenum==53||casenum==55||casenum==57)
+	if (casenum == 2 ||	casenum == 4  || casenum == 6  || casenum == 8  || casenum == 10 || casenum == 12 || casenum == 14 || casenum == 16
+	|| casenum == 18 || casenum == 20 || casenum == 22 || casenum == 24 || casenum == 51 || casenum == 53 || casenum == 55 || casenum==57 )
 	{
 	 L = 120;
 	}
@@ -46,11 +47,11 @@ main()
 	 L= 80;
 	}
 
-	if (casenum == 25 || casenum == 26 || casenum == 27 || casenum == 28 ||	casenum == 29 || casenum == 30 ||casenum==54||casenum==55||casenum==56||casenum==57 )
+	if (casenum == 25 || casenum == 26 || casenum == 27 || casenum == 28 ||	casenum == 29 || casenum == 30 || casenum == 54
+	||  casenum == 55 || casenum == 56 || casenum == 57)
 	{
 	 allcorr = TRUE;
 	}
-
 
 	//Variance of regressors
 
@@ -71,10 +72,10 @@ main()
 	if (!orthogonalregressors)
 	{
 	println("The regressors are not orthogonal");
+	
 	if (!allcorr)
 	{
-	 println("There is only correlation between the relevant variables");
-	
+	 println("There is only correlation between the relevant variables");	
 	 println("The covariance between each of the relevant variables is ", errcov);
 	}
 	 else
@@ -82,19 +83,14 @@ main()
 	  println("There is correlation between all regressors");
 	  println("The covariance between each of the regressors is ", errcov);
 	 }
-
-	
-
-
 	}
 	
 	decl cx_gum, asx_gum = { "Constant" }, mx_gum, y, eps, mx_gumh;
-		asx_gum ~= { "Ly" };
+	asx_gum ~= { "Ly" };
 	for (k = 1; k <= L; ++k)
 	{
 		asx_gum ~= { sprint("x", k) };
 	}
-	  //println("asx_gum", asx_gum);
 
 	  cx_gum = sizeof(asx_gum);
 	  mx_gum = constant(.NaN, T, L+2);
@@ -105,13 +101,7 @@ main()
 	decl v, p;
 	decl coeff;
 	decl c_alpha = quant(1-(p_a/2), T);
-
-
-	
-
 	decl beta0 = <1>;
-
-
 	decl beta = Case(casenum, L, N);
 
 	//create indicator variables to indicate which variables are included in model
@@ -128,7 +118,7 @@ main()
 	decl tbar_mc = zeros(cx_gum, cRep);
 	decl noncentrals_mc = zeros(cx_gum, cRep);
 
-	//A separate matrix not including constant (used in calculations)
+	//a separate matrix not including constant (used in calculations)
 	decl truepar = mTruePar[1:6];
 
 	for(m=0; m<L; m++)
