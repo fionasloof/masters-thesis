@@ -1,0 +1,357 @@
+This chapter outlines Autometrics, the Lasso and Bayesian Structural Time Series, the three different automatic model selection algorithms which are tested and compared in this thesis. The difficulties and dangers associated with the `black box' treatment of econometric software by econometric practitioners is also examined. 
+
+
+\section{Autometrics}
+
+Autometrics is an application of general-to-specific (GETS) model selection. GETS model selection begins with the formulation of an initial model, which includes all variables which the modeller believes may be regressors in the final model. The model space is the set of all possible models; in theory, for \textit{k} variables there are $2^{k}$ possible models to evaluate and compare. GETS algorithms search through the model space by systematically eliminating variables, and estimating the resulting models. Various tests are conducted as the algorithm progresses through the model space, which ensure that not too much information is being lost relative to the initial model, and that the estimated models are statistically well-behaved. Often there will be multiple models that the algorithm deems to be sufficiently informative and well-behaved. Therefore a tie-breaking criteria is often required to select the final model. An overview of the GETS procedure can be found in the General-to-specific modelling section of Hendry and Doornik (2014).  
+%Campos et al. (2005) provide an overview of GETS modelling, and include summaries of the fifty-seven articles which have been important in the development of GETS modelling. 
+
+Following work done by Hoover and Perez (1999), and Hendry and Krolzig (1999 and 2005), Autometrics is a third implementation of a GETS modelling procedure. While all GETS algorithms have the same goal, the implementation varies. The following four features broadly describe the main components of GETS model selection, and are the four main ways in which various GETS algorithms may differ in their approach:
+\begin{enumerate}
+\item Formulation of a General Unrestricted Model (GUM).
+\item Path search through the model space.
+\item Tests of resulting models: both statistical validity tests and encompassing tests.
+\item Tie-breaker for resulting models.
+\end{enumerate}
+With these in mind, Autometrics consists of four main components, or broadly, `steps'. First, the GUM is formulated and becomes the initial model. It is up to the researcher to determine which variables are included in the GUM. The GUM is estimated and must pass a series of diagnostic tests and also provide sufficient information about the variable being modelled. Included in the battery of tests are normality, residual correlation, residual ARCH, heteroskedasticity and in-sample Chow tests. The modeller has the choice to set the \textit{p}-value for these tests, and if the initial model fails, this can be adjusted. A detailed treatment of the Autometrics algorithm can be found in Doornik (2009). 
+
+Consider the following simple example, taken from Doornik (2009). A modeller thinks variables A, B, C and D may be relevant for modelling variable Y, but is unsure if he should include all four (obviously this a very simple example and in practice a modeller would be unlikely to use Autometrics to determine the model). In this case, the GUM would be the model composed of variables A, B, C and D. This model is required to pass tests which ensure it is statistically well-behaved, before the algorithm will proceed. The significance level for these tests is set by the modeller and is denoted $p_{d}$. 
+
+The second component in the Autometrics algorithm is a tree search through the model space. The ideas of tree search can be more easily understood with reference to Figure \ref{treesearch}. The initial model, the GUM, is estimated. Then $t$-statistics for all the potential regressors are calculated, and from these values, the variables are ranked from least significant to most significant. Continuing with the same example, the GUM is the model which includes variables A, B, C and D, and is depicted in the diagram as node ABCD. Suppose that variable A is the least significant, followed by B, C, then D. The tree search begins by eliminating the least significant variable and estimating the resulting model. In the example, this corresponds to moving to node BCD. Model BCD is backtested with respect to the GUM via a simple $F$-test, where BCD is the restricted model and ABCD is the unrestricted model. If backtesting does not reject model BCD, the next least significant variable, which is B in the example, is eliminated and the resulting model is estimated and backtested with respect to the GUM. This continues until either a model fails with backtesting or until there are no more variables to eliminate. Once either of these occurs, the search continues by backtracking through the tree until a subbranch that has not been explored fully is reached. In the example, once model D is estimated and tested, the algorithm backtracks to model CD, then continues by eliminating D and estimating model C. The algorithm then backtracks to model BCD (since all subbranches from model CD have been explored) and continues by eliminating variable C, since after B, this is the least significant variable. The algorithm continues in this way, and if no model ever failed with respect to backtesting, all $2^{k}$ models would be estimated. However, as mentioned, estimating and testing all $2^{k}$ models becomes computationally infeasible very quickly. There are several techniques Autometrics utilizes to improve on its computational efficiency: namely pruning, bunching, chopping and model contrasts:
+\begin{figure}
+\centering
+\includegraphics [scale=0.5] {TreeSearchGraph}
+\caption{An example of tree search \\ \textit{Source: Doornik (2009)}}
+\label{treesearch}
+\end{figure}
+
+\begin{itemize}
+\item Pruning: If a model fails after the deletion of one variable (either as a result of backtesting, or because of diagnostic tests) then all models emanating from this branch can be ignored. In the example, if deletion of variable A causes model BCD to fail, then all the models in subbranch BCD can be ignored. This process is called pruning. No variable with significance level less than $p_{a}$, which is the main Autometrics $p$-value and is set by the user, can be deleted from the model.
+\item Bunching:  Variables are grouped together in bunches and simultaneously deleted from the model. If the resulting model passes both backtesting and all diagnostic tests, then all of the subbranches leading away from these variables can be deleted. If variables are bunched together, deleted and the resulting model fails the tests, then a smaller bunch is deleted and the resulting model is tested. This continues until a model passes the tests or until the number of variables in a `bunch' equals 1. In the example, beginning at node BCD, if BC were sufficiently insignificant to be bunched together, the resulting model would include just D. If this model passes, then any model including B and C can be ignored. The amount of bunching is determined by $p_{b}$, and by default $p_{b} = max\{ \frac{1}{2}p_{a}^{1/2}, p_{a}^{3/4}\}$. 
+\item Chopping: If a variable is `highly insignificant', all models which include it can be ignored. In the example, if A is sufficiently insignificant, then any models which include it are not estimated. Chopping is governed by \textit{p}-value $\mathit{p_{c}}$, and by default, $p_{c} = p_{b}$. 
+\item Model Contrasts: A terminal model is one that cannot be reduced any further. Once a terminal model has been found, it is possible to determine which variables must be deleted in order to end up with a different model. Any models which include these variables can be ignored. 
+\end{itemize}
+
+To summarize, the second component of the algorithm is a tree search through the model space, which involves systematically deleting variables and estimating the resulting models. Pruning, bunching, chopping and model contrasts are used in order to ignore certain branches of the tree, which greatly improves computational efficiency. 
+
+The third component in the algorithm is testing. As the algorithm progresses through its tree-search, tests are conducted. There are two types of tests: backtesting with respect to the GUM and diagnostic tests which evaluate if the model is statistically well-behaved. Backtesting with respect to the GUM, often just referred to as backtesting, occurs each time a variable (or a bunch of variables) is deleted and exists to ensure that the deletion of a variable is not causing significant information to be lost. Backtesting is done with an \textit{F}-test, is governed by $p_{d}$ and by default $p_{d} = p_{a}$. If backtesting fails it means that the eliminated variable contains non-negligible information about the variable being modelled. Models extending from a subbranch which fails with backtesting therefore are not considered.
+
+%what is signficance level of backtesting???
+
+Diagnostic testing is conducted differently, as it is computationally expensive and not efficient. Autometrics avoids this by only performing diagnostic tests once a terminal model has been found. If the terminal model fails diagnostic tests, then the algorithm backtracks along the branch that led to this model, testing each model until one is found which passes the diagnostic tests. This then becomes the terminal model. This means that insignificant variables can be retained.
+
+The fourth component of Autometrics is using an iterative procedure to select the final model. Once the tree search is done, there are likely to be multiple terminal models. The union of all terminal models is found and each of the terminal models is backtested with respect to this union. Any model which fails with respect to backtesting is deleted, and the union of the remaining models becomes the GUM. The same tree search and testing procedure as outlined above is then performed, with this new GUM as the starting point. This iterative procedure continues until the union of terminal models in one iteration is the same as that in the previous iteration (convergence). Then if there are still multiple terminal models, the minimum Schwarz Criterion is used as a tie-breaker. 
+
+There are several additional optional features of the Autometrics algorithm, including a presearch feature,  impulse indicator saturation to test for outliers and step indicator saturation to find structural breaks.  The presearch includes lag reduction and variable reduction. Autometrics is designed so that while presearch can be beneficial, it is not necessary. It works particularly well if the variables are orthogonal or if there are only a few highly significant variables. These features are not used in this thesis but details on impulse indicator saturation and step indicator saturation can be found in Hendry et. al (2008), Johansen and Nielsen (2009) and Castle et. al (2015). 
+
+%\textbf{More variables than observations}
+
+%A very useful feature of Autometrics is that it can handle more variables than observations. --> explanation from Hendry 2004 referenced in Lasso/Autometrics compare paper
+
+
+
+%\begin{itemize}
+%\item Presearch
+%\item Search paths
+%\item Iteration
+%\item Tiebreaker
+%\item Invalid GUM
+%\item Scope
+%\item Efficiency
+%\end{itemize}
+
+%\subsection{Autometrics Criticism}
+
+
+
+
+
+
+\section{The Lasso}
+
+The Lasso (least absolute shrinkage and selection operator) is a technique for estimating models which involves variable selection by setting some coefficient parameters equal to zero, effectively eliminating them from the model \cite{tibshirani}. It is based on the same ideas as ridge regression \cite{ridgeregression70}, however in ridge regression the objective function is such that coefficients are shrunk towards zero, while never actually equalling zero. 
+
+The Lasso estimator is defined by:
+
+\newcommand*{\argmin}{\operatornamewithlimits{argmin}\limits}
+ 
+$$ \hat{\beta}^{Lasso} = \argmin_{\beta} \| y - \sum_{j=1}^{N}x_{j}\beta_{j}  \|^{2} + \lambda \sum_{j=1}^{N}|\beta_{j}|$$
+The tuning parameter $\lambda$ governs how much of a penalty there is for non-zero coefficients and can be chosen according to a variety of criteria, depending on the objective. As $\lambda$ increases, the Lasso shrinks the coefficients towards zero. If $\lambda$ is zero, the Lasso estimator becomes the OLS estimator. An important question is how to choose $ \lambda$. Generally, packages that implement the Lasso will produce parameter estimates for a range of values of $\lambda$. Among techniques widely applied to select the most appropriate tuning parameter are cross-validation, and information criteria (BIC). There are different types of cross-validation, including $K$-fold, generalized cross-validation, and leave-one-out. Studies examining different methods for selecting the correct tuning parameter include Tibrishirani (1996), Efron et al (2004), Zou et al (2007), Chen and Chen (2008), Zhang et al (2010) among may others. 
+There is no `right' way to choose the tuning parameter, but the default of many statistical packages is $K$-fold cross validation which works by dividing the data set into $K$ sets, computing the cross-validation error for a range of values of $\lambda$ and selecting the $\lambda$ which produces the smallest cross-validation error. Details on this procedure can be found in James et al (2013). 
+% see page 74 of statistical learning (tibrishani) for properties.
+%see p 227 of statistical learning (other) for section on selecting the tuning parameter
+
+
+
+\section{Bayesian Structural Time Series (BSTS)}
+
+BSTS is a system developed by Hal Varian and Steven Scott, with the purpose of nowcasting and short-term forecasting when there are many potential regressors \cite{bstspaper}. There are two main components in the system: a structural time series component and a regression component. In the regression component, variable selection techniques are used, allowing BSTS to be used on data sets with many potential regressors. 
+
+\subsection{Structural Time Series Component}
+
+The purpose of the first step in the BSTS algorithm is to capture the time series components (trends and seasonal patterns) in the data. To understand how this step of BSTS works, it is useful to use state space representation. Using the notation of Durbin and Koopman (2001), a structural time series model is given by the following two equations:
+
+\begin{align*}
+y_{t} &= Z_{t}'\alpha_{t}+\epsilon_{t} & \epsilon_{t} &\sim N(0, H_{t}) \\
+\alpha_{t+1}&= T_{t}\alpha_{t} +R_{t}\eta_{t} & \eta_{t} &\sim N(0, Q_{t})\\
+\end{align*}
+where $y_{t}$ denotes an observation, and $\alpha_{t}$ is a vector of latent state variables. The first equation is the observation equation and specifies how the observed variable $y_{t}$ is related to the latent state. The second equation is called the transition equation because it specifies how the latent state evolves. The latent state can include components which model trends and seasonality which are captured in $Z_{t}$, $T_{t}$ and $R_{t}$. This state space specification encompasses a large range of models. As an example, the following is the `basic structural model': 
+\begin{align*}
+y_{t} &= \mu_{t} + \tau_{t} + \epsilon_{t}&\epsilon_{t} &\sim N(0, \sigma_{\epsilon}^{2}) \\
+\mu_{t} &= \mu_{t-1} + \delta_{t-1} + u_{t}&u_{t} &\sim N(0, \sigma_{u}^{2})\\
+\delta_{t} &= \delta_{t-1} + v_{t}  &v_{t} &\sim N(0, \sigma_{v}^{2})\\
+\tau_{t} &= - \sum_{s=1}^{S-1}\tau_{t-s}+w_{t}&	\tau_{t} &\sim N(0, \sigma_{w}^{2})
+\end{align*}
+Here, $\mu_{t}$ denotes the trend, $\delta_{t}$ is the slope of the trend at $t$ and $\tau_{t}$ denotes the seasonal component. The state $\alpha_{t}$ is made up of trend and seasonal components so $\alpha_{t} =  (\mu_{t}, \delta_{t}, \tau_{t})$. Using the terminology of Durbin and Koopman again the first equation is the observation equation and the subsequent three together can be expressed as the transition equation as above.
+BSTS adds a regression component to the basic structural model, so the observation equation  becomes:
+\begin{align*}
+y_{t} &= \mu_{t} + \tau_{t} + \beta'\textbf{x}_{t} + \epsilon_{t}& \epsilon_{t} &\sim N(0, \sigma_{\epsilon}^{2})
+\end{align*}
+where $\textbf{x}_{t}$ is a vector of regressors the researcher believes may be relevant for modelling $y_{t}$. This `basic structural model + regression component' is the model that BSTS estimates. This distinction between the time series and structural `parts' of $y_{t}$ is fundamental to the estimation method by which BSTS produces its estimates. BSTS uses Kalman filtering, smoothing and Bayesian data augmentation to determine the time series component of $y_{t}$, subtracts this calculated time series component from $y_{t}$ and then uses spike-and-slab regression on the `remaining' part of $y_{t}$. The Kalman filtering, Kalman smoothing and Bayesian data augmentation techniques are now briefly described. For a much more detailed explanation on these techniques, readers should consult Durbin and Koopman (2001). 
+
+%The unknown parameters of this model are the variances random processes, $H_{t}$, and $Q_{t}$, as well as $\beta$. For now, take $\beta$ as given in order to focus on the time series component. The user has the option to use the state space formation of their preference, and can include trends, local trends, seasonality, etc. Using Kalman filtering, Kalman smoothing, and Bayesian Augmentation, BSTS determines how much of $y_{t}$ is composed of time series components. A brief overview of these three techniques is below. For more detailed explanation, readers should consult Durbin and Koopman. 
+  
+Kalman filtering is used to predict the distribution of a latent process. For example, consider the simple local level model described by the following equations:
+\begin{align*}
+y_{t} &= \alpha_{t} + \epsilon_{t}  & \epsilon_{t} &\sim N(0, \sigma_{\epsilon}^{2}) \\
+\alpha_{t+1} &= \alpha_{t} + \eta_{t} &  \eta_{t} &\sim N(0, \sigma_{\eta}^{2})
+\end{align*}
+Kalman filtering works by first finding the distribution of $\alpha_{t}$, conditional on the information available at $t-1$, which is contained in the series of observations $y_{1:t-1}=y_{1},...,y_{t-1}$. This distribution is denoted $p(\alpha_{t} | y_{t-1})$. Once a new data point, $y_{t}$, becomes available Kalman filtering updates the distribution of $\alpha_{t}$, producing  $p(\alpha_{t} | y_{t})$. In determining  $p(\alpha_{t} | y_{t})$, the algorithm uses information from  the previously found distribution, the new data point, and the variance of each process. Estimates for the $\alpha_t$s are found by taking  expectations from the calculated distributions. The `filter' is the term that determines how much of the new estimate should reflect the new information available via $y_{t}$. If for example there is a lot of noise in the $y_{t}$s then the filter will place less weight on the new observation, and more on the previous estimate of $\alpha_{t}$. The outputs of the Kalman filter are the estimated $\alpha_{t}$s, the prediction errors denoted by $v_{t}$ (calculated from $v_{t} = y_{t}-\alpha_{t}$),  the prediction error variance, and the variance of the estimated $\alpha_{t}$s.
+ 
+Kalman smoothing works to smooth out the estimates of the $\alpha_{t}$s after the Kalman filter has been applied. Kalman smoothing finds new distributions of $\alpha_{1}, \alpha_{2},..., \alpha_{n}$ using the entire sample $Y_{n}$.  This is in contrast to filtering which estimates $\alpha_{t}$ using only information available up until time $t$. Kalman smoothing relies on the idea of backward recursion, to produce the updated distributions, which are denoted $p(\alpha_{t} | y_{1:n})$ to reflect the fact that they are calculated using all $n$ observations of $y_{t}$.
+
+Estimation of the regression component of BSTS requires values of $\alpha_{t}$. Bayesian data augmentation makes it possible to simulate $\alpha_{t}$ from the distributions derived from Kalman filtering and smoothing. It is not possible to draw $\alpha_{t}$s directly from the derived $p(\alpha_{t} | y_{1:n})$ because of the correlation that exists between $\alpha_{t}$ and $\alpha_{t+1}$. The authors of BSTS use an algorithm developed by Durbin and Koopman which takes this correlation into account and produces simulated values for the $\alpha_{t}$s. 
+ 
+ 
+Using these three techniques together, the algorithm determines `how much' of the dependent variable can be explained by structural time series components. This component is then subtracted from the dependent variable, and the regression techniques are run on what `remains' in  $y_{t}$. As a side note, simply subtracting the times series component from $y_{t}$ is theoretically flawed, and results in biased and inconsistent estimates of the regression parameters. This is shown in a simple proof later on. 
+ 
+
+\subsection{Regression Component}
+
+The regression component of the algorithm uses Bayesian parameter estimation techniques. Bayesian parameter estimation is based on Bayes' formula. If $\theta$ are the parameters that need to be estimated, and the available data is \textbf{d}, then Bayes' formula states:
+
+$$ \Pr(\theta | \mathbf{d}) = \frac{\Pr(\mathbf{d}|\theta)\Pr(\theta)}{\sum_{\theta^{'}}^{\Theta}\Pr(\mathbf{d}|\theta^{'})\Pr(\theta^{'})}$$
+By setting priors which reflect beliefs about the distribution of the parameters, Bayes' formula can be used to update these beliefs and obtain a posterior distribution using the actual realized data. 
+To use these techniques priors for the parameters of interest need to be set. Often these are set somewhat ambiguously. Once the priors have been set and posteriors have been calculated, parameter estimates can be inferred for example by finding the mean of the posterior, or performing simulations. When the prior and posterior distributions come from the same family of distributions they are called conjugates. This is often a desirable feature for priors. 
+
+BSTS uses a spike-and-slab prior on the regression coefficients, which induces sparsity in the model \cite{spikeandslab}. For the purposes of describing the algorithm, consider the following model:
+$$y_{t} = \sum_{j=1}^{N}\beta_{j}x_{j,t} + \epsilon_{t}$$
+where the parameters to be estimated are the $\beta_{j}$s. Let $\gamma_{j} = 1$ if $\beta_{j}\neq 0$ and let $\gamma_{j} = 0$ otherwise (so $\gamma$ is an indicator variable). The spike-and-slab prior takes the following form:
+$$ p(\beta, \gamma, \sigma_{\epsilon}^{2}) = p(\beta_{\gamma} | \gamma, \sigma_{\epsilon}^{2})p(\sigma_{\epsilon}^{2}| \gamma) p(\gamma)$$
+Priors must be set for $p(\gamma)$, $p(\sigma_{\epsilon}^{2} | \gamma)$ and $p(\beta_{\gamma} | \gamma, \sigma_{\epsilon}^{2})$, where the $\gamma$ index is used to indicate that it refers only to the distribution of parameters of the variables where $\gamma_{k} = 1$. In the BSTS package, default priors are built in, but can be changed. 
+
+The $p(\gamma)$ prior gives the prior belief that a particular combination of variables is selected as the set of regressors in the model.  Because the objective of spike-and-slab is to induce sparsity in the model, the prior is set as an independent Bernoulli prior, where $\pi_n$ is the probability that a particular variable is included in the model, or $\Pr(\gamma_n = 1) = \pi_{n}$, and therefore:
+$$\gamma \sim \prod_{n=1}^{N} \pi_{n}^{\gamma_{n}}(1-\pi_{n})^{1-\gamma_{n}}$$
+For simplicity, it is often assumed that $\pi_{n} = \pi$ for all $n$. When this is the case, $\pi_{n}$ represents the proportion of all possible predictors which are expected to be selected and in the final model. The default in BSTS is set to $\pi_{n}=\pi=0.5$. If the researcher has reason to believe that a particular variable almost certainly should be included in the model, they can set $\pi_{k} = \Pr(\gamma_{n} = 1)$ close to one to reflect this. The distribution of $\gamma$ is the `spike' because it sets the probability that $\beta_n = 0$ at some positive value (resulting in a sparse model). 
+
+BSTS sets the conditional variance prior as the conjugate:
+
+$$ \frac{1}{\sigma_{\epsilon}^{2}} | \gamma \sim Ga(\frac{v}{2}, \frac{ss}{2}) $$
+where $Ga(r, s)$ refers to the Gamma distribution, with mean $r/s$ and variance $r/s^{2}$. The Gamma distribution is often used as a prior for the variance as the parameters $r$ and $s$ are always positive. Here, the researcher has the choice to set the parameters $v$, interpreted as the prior sample size, and $ss$, interpreted as the prior sum of squares, as they wish. The most straightforward method of setting $ss$ and $v$ is for the user to provide the expected $R^{2}$ and the expected sample size $v$. Then, BSTS uses a trick to calculate the sum of squares $ss$. Let $rss$ denote the residual sum of squares. Since:
+$$1-R^{2} = \frac{rss}{ss}$$
+and
+$$s_{y}^{2}=\frac{ss}{v}$$
+it follows that:
+$$\frac{ss}{v} = (1-R^{2})s_{y}^{2}$$
+
+That is, the marginal standard deviation of $y$, $s_{y}$, is used to find the prior sum of squares, which is then used in the prior for the standard deviation. Using $s_{y}^{2}$ in the prior for $\sigma_{\epsilon}^{2}$ violates Bayesian rules whereby priors cannot be data determined. The defaults in BSTS are $v = 0.01$ and $R^{2}=0.5$. 
+
+The prior for the conditional distribution of $\beta$ is also a conjugate and is set in BSTS as:
+\begin{align*}
+\beta_{\gamma} | \sigma_{\epsilon}^{2} , \gamma \sim N(b_{\gamma}, \sigma_{\epsilon}^{2}(\Omega_{\gamma}^{-1})^{-1}) 
+\end{align*}
+The researcher has a choice to set the prior means of the $\beta_{k}$s, as well as the the information matrix $\Omega_{\gamma}$. The default in BSTS sets $b_{\gamma}=0$ and sets the information matrix as $\Omega^{-1}=\kappa {X'X}$, where $\kappa$ is a weighting term. If the researcher uses these default settings in BSTS, the problem of priors being data driven exists again. The default calculates the second moment terms in the information matrix using the full sample. Once the priors are set by the researcher, the conditional posterior distributions of $\beta$ and $\sigma_{\epsilon}^{2}$ can be calculated from conjugacy formulas. 
+
+Define $y_{t}^*= y_{t} - Z_{t}^{*'}\alpha_{t}$, where $Z_{t}^{*'}\alpha_{t}$ is the time series component. That is, $y_{t}^{*}$ is the dependent variable with the time series component subtracted. Setting $\textbf{y*}=y^{*}_{1:n}$,
+\begin{align*}
+\beta_{\gamma} | \sigma_{\epsilon}, \gamma, \textbf{y*} &\sim N(\tilde{\beta_{\gamma}}, \sigma_{\epsilon}^{2}(V_{\gamma}^{-1})^{-1})\\
+\frac{1}{ \sigma_{\epsilon}^{2}} | \gamma, \textbf{y*} &\sim Ga(\frac{N}{2}, \frac{SS_{\gamma}}{2})
+\end{align*}
+The sufficient statistics to calculate these distributions are:
+\begin{align*}
+V_{\gamma}^{-1} &= (\textbf{X}'\textbf{X})_{\gamma} + \Omega_{\gamma}^{-1}\\
+N &= v + n\\
+\tilde{\beta_{\gamma}} &= (V_{\gamma}^{-1})^{-1}(\textbf{X}_{\gamma}^{T}\textbf{y*} + \Omega_{\gamma}^{-1}b_{\gamma})\\
+SS_{\gamma} &= ss + \textbf{y*}'\textbf{y*} + b_{\gamma}^{T} \Omega_{\gamma}^{-1} b_{\gamma} -  \tilde{\beta_{\gamma}}_{\gamma}^{T} V_{\gamma}^{-1}  \tilde{\beta_{\gamma}}_{\gamma}\\
+\end{align*}
+The posterior distribution of $\gamma$ is different because it does not come from a conjugate prior. Let C(\textbf{y*}) be a normalizing constant. It can be shown that the posterior distribution of $\gamma$ is \cite{bstspaper}:
+$$ \gamma | \textbf{y*} \sim C(\textbf{y*}) \frac { |\Omega_{\gamma}^{-1}|^{1/2}} {|V_{\gamma}^{-1}|^{1/2}} \frac{p(\gamma)}{SS_{\gamma}^{N/2 - 1}}$$\\
+ 
+To summarize, at this point the prior distributions have been described, the parameters which can be set by the researcher (or which are alternatively set to the BSTS defaults) have been outlined, and the calculated posterior distributions have been provided. The next step is understanding how these posteriors are employed in the algorithm itself to estimate the parameters.
+
+\subsection {Markov Chain Monte Carlo Simulations in Bayesian Parameter Estimation}
+
+The objective of Markov Chain Monte Carlo simulations (MCMC) is to estimate the parameters of interest \cite{robertcasella2004}. In BSTS, the parameters can be classified as either relevant to the time series component or the regression component. These two sets of parameters are both estimated via simulation, but the method of simulation differs. Broadly, these two `methods' correspond to two main steps:
+
+\begin{enumerate}
+\item Kalman filter, Kalman smoothing and Bayesian data augmentation are used to simulate $\alpha$, the time series component, as well as any other parameters in the state space model. In the basic structural model above, this would include the variance parameters $\sigma_{u}^{2}$, $\sigma_{v}^{2}$, $\sigma_{\tau}^{2}$.  Durbin and Koopman's simulation smoother is used for this step \cite{durbinkoopman2001}.
+
+\item Simulate $\beta$ and $\sigma_{\epsilon}^{2}$ from the posterior conditional probabilities. This involves several steps because the posterior probabilities are conditioned on $\gamma$. In order to draw values of $\beta$ and $\sigma_{\epsilon}^{2}$ draws of $\gamma$ are required. Values of $\gamma$ are drawn via stochastic search variable selection (SSVS) \cite{georgemcculloh}. 
+SVSS is a variable selection technique which relies on Gibbs Sampling. As outlined above, the posterior distribution of $\gamma$ is based on a number of statistics which are provided by the researcher, as well as the prior for $\gamma$, $p(\gamma)$. If there are $n$ possible regressors, then there are $2^{n}$ possible subsets of regressors. It is computationally infeasible to calculate the posteriors for each of these subsets. Gibbs sampling is therefore used, generating a sequence of `model subsets' by selecting m different draws of $\gamma$:
+$$ \gamma_{1},....,\gamma_{m} $$
+where each $\gamma_k$ is one of the $m$ sample draws, corresponding to a different selection of the possible regressors being selected. 
+
+Gibbs sampling operates so that only subsets which are highly probable will be sampled and included in the sequence. As it continues and generates more draws, the sampler has more information, and it begins to narrow in on the regressors which are most likely to be included in the model, selecting them more often. The sequence of draws therefore gives a good indicator of the subset that should be included in the model. Tabulating across the sequence gives a useful measure of the probability that a particular variable should be included in the model. 
+In many cases the sequence of draws converges rapidly in distribution to $\gamma \sim f(\gamma | Y)$. The nature of the Gibbs sampler means that it converges quickly, making it far more efficient to compute than the actual posterior.  The draw of $\gamma$ from Gibbs sampling is used to find the conditional $\sigma_{\epsilon}^{2}$ and $\beta$ distributions. From these, draws are obtained for $\sigma_{\epsilon}^{2}$ and $\beta$ from their respective posterior distributions. 
+\end{enumerate}
+To summarize, in each repetition, draws of $\gamma$ from SSVS and Gibbs sampling are obtained. These are used to compute the posterior distribution of $\sigma_{\epsilon}^{2}$, which is used to compute the posterior distribution of $\beta$. These distributions can then be used to obtain parameter estimates for $\beta$. 
+
+Because the algorithm computes distributions and not point estimates for the parameters, the algorithm does not explicitly select variables; it calculates the probability that a particular variable has coefficient $\beta \neq 0$. To use BSTS as a selection algorithm then, the user must determine what the threshold for considering a variable selected is. 
+
+\subsection {A Note on the Bias and Inconsistency of BSTS Estimates}
+
+After calculating the time series component, BSTS subtracts this from the dependent variable and proceeds with spike-and-slab regression to estimate the parameters on the regression components. The process employed by BSTS to `eliminate' the time series component from the dependent variable is theoretically flawed and likely results in biased coefficient estimates. The complexity of the process through which the time series component is determined, and the use of spike-and-slab regression make this difficult to prove directly, but the impact of performing this sort of `trick' can easily be seen in the case of a multivariate regression using OLS. Consider the following process, which using the terms from BSTS, consists of both a time series component $Y_{\_}\Gamma$ and a regression component $X\beta$: 
+\begin{align}
+Y = Y_{\_}\Gamma  + X\beta + \epsilon \label{eqB}
+\end{align}
+where Y is a $T \times 1$ matrix, $Y_{\_}$ is a $T \times L$ matrix containing lags of $Y$, seasonal indicators, and variables relevant to the time series dynamics of $Y$, and $X$ is a $T \times K$ matrix containing regression components.  BSTS estimates the time series component using Kalman filtering, smoothing and Bayesian data augmentation described above, finding estimates for the latent state variables in $\alpha$ in the following equation:
+\begin{align}
+Y= Z' \alpha  + u
+\end{align}
+where $Z$ is the $S \times T$ observation matrix containing all state components (i.e. local linear trends, or in this case, an autoregressive component), and $\alpha$ is a $S \times 1$ matrix containing the latent components. To find the regression component, BSTS estimates the following spike-and-slab regression, with $Y^{*} = Y - Z'\alpha$:
+\begin{align}
+Y^{*} =  X\beta + \epsilon \label{eqA}
+\end{align}
+Since both $Y_{\_}\Gamma$ and $Z'\alpha $ correspond to the time series dynamics of $Y$, assume that:
+\begin{align}
+Y_{\_}\Gamma \approx Z'\alpha 
+\end{align}
+So that estimating (\ref{eqA}) is equivalent to estimating:
+\begin{align}
+Y - Y_{\_}\Gamma =  X\beta + \epsilon \label{eqC}
+\end{align}
+Estimating (\ref{eqA}) by OLS results in the following estimate for $\beta$:
+\begin{align}
+\widehat{\beta} = (X'X)^{-1}X'Y^*
+\end{align}
+However the true value of $\beta$ is found from estimating (\ref{eqB}). By the Frisch-Waugh theorem, estimating (\ref{eqB}) is equivalent to estimating:
+\begin{align}
+M_{Y_{\_}}Y = M_{Y_{\_}}X\beta + M_{Y_{\_}}\epsilon
+\end{align}
+where $M_{Y_{\_}}$ is the annihilator matrix:
+\begin{align}
+M_{Y_{\_}} = I - Y_{\_}(Y_{\_}'Y_{\_})^{-1}Y_{\_}'
+\end{align}
+The correct estimates for $\beta$ from (\ref{eqB}) are therefore given by: 
+\begin{align}
+\widetilde{\beta} = ((M_{Y_{\_}}X)'(M_{Y_{\_}}X))^{-1}(M_{Y_{\_}}X)'M_{Y_{\_}}Y
+\end{align}
+Unless $Y_{\_}$ is orthogonal to $X$ or $\alpha = 0$, $\widehat{\beta} \neq \widetilde{\beta}$. Therefore, to obtain correct parameter estimates for $\beta$ in the regression which does not include $Y_{\_}$ as a regressor it is necessary to apply transformations to $Y$ and $X$ to get $Y^{**}$ and $X^{**}$:
+\begin{align}
+Y^{**} = M_{Y_{\_}}Y\\
+X^{**} = M_{Y_{\_}}X
+\end{align}
+So, $Y^{**}$ and $X^{**}$ should be used in the spike-and-slab regression. By design however, the algorithm uses untransformed $X$, and $Y^{*} = Y -  \alpha Z$. Since
+\begin{align}
+Y^{*} = Y -  \alpha Z \neq M_{Y_{\_}}Y = Y^{**} 
+\end{align}
+and
+\begin{align}
+X \neq M_{Y_{\_}}X = X^{**} 
+\end{align}
+it follows that unless $Y_{\_}$ and $X$ are orthogonal, so that none of the time series dynamics present in $Y$ are present in $X$, or if $\alpha = 0$, so there are no time series dynamics in $Y$, the coefficient estimates from the spike-and-slab regression will be incorrect. 
+
+%After Y_\Gamma\approx Z\alpa, use Y*=X\beta+\epsilon and show what \hat\beta is. Then contrast to the FW theorem and show \tilde\beta based on MY_
+
+%\subsection{A digression into }
+
+%Users of BSTS potentially have a lot of decisions to make when employing the algorithm. Depending on their comfort and prior knowledge about how Bayesian algorithms work, the user can either make the single decision to use the default settings, or upwards of ten or fifteen, depending on the chosen priors. Relative to Autometrics which requires decision by the user, and even the Lasso, BSTS is very complicated. Furthermore, it is not clear, even for those with a background in Bayesian methods, what the impact of changing certain priors are. It is also not clear why the defaults are as they are. A table of the priors and the defaults is provided in Table \ref{tab:algsettings}, and the implications of complicated algorithms which are computationally `out of reach' for many users is will be discussed later on. 
+
+\subsection{Summary table for Autometrics, the Lasso and BSTS} 
+To use any of the three algorithms, user inputs are required. Table \ref{tab:algsettings} provides a summary of the user inputs and how they influence the algorithm results.
+
+
+\begin{landscape}
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+\begin{table}[]
+\centering
+
+\begin{tabular}{p{2cm} | p{3 cm}| p{11cm}| p{4cm}}
+\textbf{Algorithm} & \textbf{Setting}                                   & \textbf{Description}                                                                                                                                                                    & \textbf{Default}                                   \\
+\hline
+\hline
+Autometrics        & $\alpha$                                           & - Must be set by user: main Autometrics $p$-value                                                                                                                                                                     & No - set by user                                   \\
+                   &                                                    & - $\alpha$ governs the level of pruning, so $p_{a} = \alpha$.                                                                                                                             &                                                    \\
+                   &                                                    & - Close to the fraction of irrelevant variables retained by the procedure                                                                                                                 &                                                    \\  \hline 
+                   &        $p_{b}$                                        & - Governs the amount of bunching                                                                                                                                                          
+                   &$p_{b} = max\{\frac{1}{2}p_{a}^{1/2},p_{a}^{3/4}\}$  \\
+                 
+                   
+                   
+                   
+                 &                                                 & - Not (usually) set directly by user                                                                                                                                                      &                                                    \\
+                   &                                                    & - Too high results in excessive backtracking                                                                                                                                              &                                                    \\
+                   &                                                    & - Too low results in bunching effectively turned off                                                                                                                                      &                                                    \\
+   \hline                & $p_{c}$                                            & - Not (usually) set directly                                                                                                                                                              & $p_{c} = p_{b}$                                    \\
+                   &                                                    & - Governs what is considered `highly' significant, and therefore chopping                                                                                                                 &                                                    \\
+ \hline                  & $p_{d}$                                            & - Not (usually) set directly by user                                                                                                                                                      & $p_{d} = p_{a}$                                            \\
+                   &                                                    & - Built in features to relax this if necessary                                                                                                                                            &                                                    \\
+\hline
+\hline
+Lasso              & tuning parameter $\lambda$                         & - $\lambda$ determines the sparsity of the selected model                                                                                                                                 &    No - either set by user or                                           \\
+
+                   &                                                    & - Higher $\lambda$ will result in a sparse model                                                                                                                                     &   determined via a separate                                                   \\
+                   &                                                    & - Lower $\lambda$ will result in a less sparse model                                                                                                                                          &     algorithm                                               \\
+                   &                                                    & - If $\lambda = 0$ the Lasso is equivalent to OLS                                                                                                                                         &                                                    \\
+                   &                                                    & - Various techniques for choosing the `best' $\lambda$, usually some form of cross validation or information criteria is used                                                                                                                   &                                                    \\
+\hline
+\hline
+BSTS               & Prior for $\gamma$               & - Bernoulli prior: $\gamma \sim \prod_{n=1}^{N} \pi_{n}^{\gamma_{n}}(1-\pi_{n})^{1-\gamma_{n}}$                                                                                           & Bernoulli prior with                              \\
+                   &                                                    & - User could choose to use an entirely different prior if so inclined                                                                                                                     &    $\pi_{n} = \pi = 0.5$                                                 \\
+                   &                                                    & - If $\pi_{n} = \pi$ $\forall n$ then $\pi$ is the expected model size (or fraction of non-zero predictors); therefore $\pi$ affects sparsity of selected model                           &                                                    \\
+                   &                                                    & - If user has reason to believe that a certain predictor is particularly relevant, can set $\pi_{n}$ high for that regressor                                                              &                                                    \\
+\hline                   & Prior for $\frac{1}{\sigma_{\epsilon}^{2}}| \gamma$ & - Gamma prior: $ \frac{1}{\sigma_{\epsilon}^{2}} | \gamma \sim Ga(\frac{v}{2}, \frac{ss}{2}) $                                                                                            & Gamma with parameters                             \\
+                   &                                                    & - ss interpreted as prior sum of squares                                                                                                                                                  &   determined by $R^{2}=0.5,$                                                   \\
+                   &                                                    & - v interpreted as prior sample size                                                                                                                                                      &   $v = 0.01$                                                 \\
+                   &                                                    & - Can also be set by asking user for expected $R^{2}$ and number of observations worth of weight $v$                                                                                         &                                                    \\
+                   &                                                    & - User could choose to use an entirely different prior if so inclined                                                                                                                     &                                                    \\
+\hline                   & Prior for $\beta_{\gamma} | \sigma_{\epsilon}^{2}$ & - Normal prior: $\beta_{\gamma} | \sigma_{\epsilon}^{2} , \gamma \sim N(b_{\gamma}, \sigma_{\epsilon}^{2}(\Omega_{\gamma}^{-1})^{-1}) $                                                   & Normal prior with $b = 0$,                                            \\
+                   &                                                    & - Very common to assume vector of prior means $b = 0$, however if user has reason to believe a certain predictor is particularly relevant, can set $b_{\gamma}$ higher, thereby affecting sparsity & $\Omega_{\gamma}^{-1} = \kappa \mathbf{X'X}/n$, $\kappa$ observations worth of weight on prior $b$     \\
+                   &                                                    & - Information matrix $\Omega_{\gamma}^{-1}$ default violates Bayesian rules as is data determined                                                                                         &  \\
+\end{tabular}
+\caption{Algorithm settings}
+\label{tab:algsettings}
+\end{table}
+\end{landscape}
+
+%END OF TABLE for algorithm settings
+
+\section{A Note on Econometric Software as a `Black Box'}
+The previous sections outlined and explained Autometrics, the Lasso and BSTS in a fair amount of detail. While each effectively accomplish the same task of selecting a model from a general unrestricted model, each does so in a very different manner, relying on different statistical, computational and econometric techniques. Ideas from each of these three disciplines are used to varying degrees, and combine to create algorithms which may be difficult for an economist with little training in computer programming, or a computer programmer with little training in economics to understand. On the surface this seems to imply that usage of the algorithms would be restricted to the subset of economists/statisticians/computer scientists who have an understanding of all three subjects, and indeed the ideal user would have an understanding of these three disciplines. In practice however this is generally not the case. Since its inception, there has been a separation between those who derive econometric theory, those who translate this theory into econometric software thereby making it accessible to econometric practitioners, and those who actually use the econometric software to conduct their research. This means that there is little requirement for the practitioners to understand the processes going on `behind the scenes' when they estimate a model, or when they consider the results of statistical tests displayed in the output. Most practitioners simply take displayed results as correct, under the assumption that the program they are working with has correctly implemented the theory behind the estimators, tests, etc. which they are interested in.
+
+As discussed at length in the text `The Practice of Econometric Theory' \cite{renfro2009} the development of econometrics and computer software over the past sixty years has led to a divergence between those who develop, implement and apply econometric theory. There are many reasons for this disparity. Perhaps the biggest is that there is little incentive for an econometric practitioner to spend the time learning and developing their own econometric software due to the time investment it would require and the availability of software which performs most of what a practitioner would like it to. The cost of learning a language, writing code and maintaining documentation, is huge and, particularly when there are a  range of existing options which perform the same task, seems like an inefficient use of time for practitioners. 
+
+A valid question is if there are serious consequences for this divergence. On one hand, perhaps there is little need for a practitioner to understand precisely how a software package does its calculations. If a practitioner understands the theory behind some estimator or statistical test, and can use a well-regarded software package to calculate it, on the surface there seems to be little need for her to implement it herself. There are deeper issues however, which point to more systemic problems in the practice of econometrics. 
+
+One consequence is the fact that the work of practitioners is guided by what software is available, instead of what theoretically might make the most sense. It is generally not econometric theory which guides research, but the software that is readily available. As Renfro states:
+\begin{displayquote}
+`A danger inherent in these circumstances and frictions may be more a tendency for the econometrics theorist to become isolated from the economic practitioner. Obviously, to the degree that practitioners accept the software that is available rather than writing it themselves, having carefully studied the theory, the effect is to impose an intermediary barrier between these  two groups [...] Already, both textbooks and software manuals are perceptibly becoming focused on the description of the techniques actually available in the existing econometric software packages - rather than always on the issues of greater present interest to theoreticians.'
+\end{displayquote}
+A second consequence is the treatment of econometric software as a series `black boxes'. As stated by Renfo:
+\begin{displayquote}
+`It is all too easy for the econometrics software developer to become a technological fan-dancer, offering enticing glimpses amidst smoke and mirrors, yet hiding the essential truth from the spectator. The problem is how to avoid this opacity. It can be avoided if developers make the effort to provide clear descriptions of the characteristics of the displays they provide and if those who teach communicate to their students precisely what the statistics mean.'
+\end{displayquote}
+The `black box' problem is compounded as the algorithms become more complicated. Consider the case of the three algorithms described earlier. A researcher simply wishing to employ GETS modelling needs to know very little about the algorithms to actually employ them. A user wishing to generate a sparse model or forecasts can fairly easily use Autometrics, the Lasso and BSTS, doing almost no background research if they have basic skills in OxMetrics and R. The ease with which these algorithms can be applied can be viewed as positive, due to the time it inevitably saves for users. On the other hand it means that, especially when the algorithms are very complicated, there is almost no incentive to understand what the algorithms are actually doing.
+
+%The only input required from the user of Autometrics is the significance level $\alpha$. The Lasso requires either the user to specify the tuning parameter, or to select a method by which to choose a tuning parameter. For BSTS, there are many inputs which can be provided the user if they are so  (and informed), but in practice it can be used with its default settings, without requiring any inputs from the user.
+Added complexity often means it is nearly impossible to disentangle the theory behind the algorithm, making these algorithms `super opaque' black boxes in the sense that both the underlying theory and software may not be well understood by the user.  Consider BSTS which is the most complicated of the three algorithms described earlier. It is difficult to know, and is at least not well explained in the documentation, what the effect of changing many of the inputs actually is. This makes it very difficult for a user to know whether they are employing the algorithm in the correct manner, and how to interpret results. Implementing Autometrics and the Lasso correctly relies on knowledge of computer software to a lesser extent than the BSTS, and the properties of the results are more easily mapped to the inputs. 
+
+Two additional consequences of the `black box' phenomenon are the disregard and even acceptance of numerical inaccuracy within software packages, and the misinterpretation of output. Most users do not consider numerical accuracy when deciding between different statistical packages. Even econometrics textbooks give the impression that any of the multiple econometrics packages available are acceptable to solving the problem, and as McCullough (1999) states with the `implicit and unwarranted assumptions being that the computer's solution is accurate and that one software package is as good as any other.' It would likely come as a surprise to many users that, as analyzed extensively by Renfro, different software packages performing the same task, using identical data produced different results. Even if they were more aware of the inaccuracies, most do not have the computer programming background actually do anything about it, and as the field generally seems to accept econometric software as it is, there is no real incentive to do so anyways. Moreover, most users think the onus is on the developers to produce software which produces accurate results. But since numerical accuracy is not a selling feature of econometric software, it is not surprising that the developers have little interest in ensuring it, instead focusing on new features or speed of computation, both of which are important to users. As McCullough points out with multiple examples, numerical inaccuracy can have a big impact on results and findings, and is therefore an issue that needs to be addressed. 
+
+Numerical inaccuracy is likely to be even more prevalent in a software package like R. The manner in which R is developed and maintained is different from that of the more traditional econometric packages as it is free and relies on individual packages which can be developed and shared by anyone via the internet. The following quote is taken from R's official website:
+\begin{displayquote}
+`Many users think of R as a statistics system. We prefer to think of it of an environment within which statistical techniques are implemented. R can be extended (easily) via packages. There are about eight packages supplied with the R distribution and many more are available through the CRAN family of Internet sites covering a very wide range of modern statistics.'
+\end{displayquote}
+This approach where the testing requirements are minimal leaves further room for computational error. Although in time users find errors, and packages are updated, if the packages are sufficiently complex it is less likely that numerical errors are found and reported simply because most users are likely unsure as to what the results should actually be.  The disregard, or even indifference, towards numerical inaccuracy in the field of economics is troublesome and is a symptom of the much greater problem in the field, which is that of economist's blind faith in the econometric software packages available to them. 
+%https://www.r-project.org/about.html
+
+A separate but related issue is the interpretation of results. Errors of this nature exist for even the most experienced economist; consider David Hendry's debate with Milton Friedman where Friedman failed to realize that their software had made a heteroskedasticity correction using a normalization, meaning all their $t$-values were inflated, which greatly impacted their analysis \cite{EricDFHSH14MF}. Mistakes of these nature are not uncommon even when software and interpretation of results is well documented, and are an even bigger problem where the algorithms are complex and the documentation is vague, imprecise or incomplete.  
+
+Given the tendency of economists to treat econometric software as a `black box', model selection algorithms should be as accurate, robust and straightforward as possible with documentation which clearly explains the inputs, the theory behind the algorithm, and what the results actually mean. What the criteria for accurate, robust and straightforward software should be is debatable, but a reasonable question that a user should ask is `what is the proper way to use this algorithm'. If the answer is relatively simple and the outcome of changing the user inputs is clear, this should be viewed favourably. If the answer is long and not straightforward, it seems naive to expect users to implement it properly.
+
+As machine learning ideas become more mainstream in the field of economics, there are likely to be increasing numbers of algorithms which make forecasts, select models, etc. in a seemingly automatic way. While there is potential for these algorithms to simplify the job of an econometrician, it is crucial that algorithms are documented and taught in such a way that allows the average econometrician to use them appropriately. This will be necessary until the field begins to shift towards a more data-driven style of research, and when an education in economics also includes a more in depth understanding of how economic software is developed.
+
+
+
+
