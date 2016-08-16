@@ -1,0 +1,149 @@
+\documentclass[a4paper]{report}
+\usepackage[margin=3cm]{geometry}                		
+\geometry{a4paper}
+ \pagestyle{plain} 
+\usepackage{setspace}
+ \onehalfspacing
+				
+\usepackage{graphicx}
+\usepackage [english]{babel}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{pdfpages}
+\usepackage{amsmath}
+\usepackage{verbatim}
+\usepackage{underscore}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{bm}
+\usepackage{rotating}
+\usepackage{pdflscape}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\graphicspath{ {figures/} }
+\usepackage{import}
+\usepackage{bm}
+\usepackage{enumitem}
+\usepackage{apalike}
+\usepackage{afterpage}
+\usepackage{pdflscape}
+\setitemize{noitemsep,topsep=1pt,parsep=1pt,partopsep=1pt}
+\setlength{\parskip}{0mm}
+%\usepackage[round]{natbib}
+\usepackage{url}
+    \addto{\captionsenglish}{\renewcommand{\bibname}{References}}
+    
+
+
+
+
+\usepackage [autostyle, english = american]{csquotes}
+\MakeOuterQuote{"}
+
+
+
+\begin{document}
+
+
+\input{chapters/title.tex}
+
+
+\mbox{}
+\thispagestyle{empty}
+\newpage
+
+
+\chapter*{\centering Abstract}
+Three different automatic model selection algorithms are described. Various criteria for the evaluation of model selection algorithms are outlined including the gauge, potency and conditional mean squared errors. Monte Carlo simulations are used to evaluate the algorithms across three different states of nature.  The algorithms are compared based on their ability to select relevant variables, exclude irrelevant variables and the accuracy of their parameter estimates. They are also compared to the benchmarks or `best case scenarios' providing a measure of the costs of search and inference. A separate application of automatic model selection for nowcasting is then considered. The algorithms are used to nowcast and forecast the rate of influenza-like illness in the United States using Google search queries. 
+
+\newpage
+\thispagestyle{empty}
+\mbox{}
+
+\chapter*{\centering Acknowledgements}
+
+I would like to thank my dedicated and endlessly enthusiastic supervisors Jennifer Castle and David Hendry. Their brilliance and passion for econometrics and automatic model selection is inspiring, and the insight, guidance and support they have provided every step of the way is immeasurable. It has been been an absolute privilege working with them.
+
+I would like to extend my thanks to my wonderful parents and Kevin for their never ending support, love and encouragement through the entire process. And to Whiskers, the best study buddy in the world. 
+
+\newpage
+\thispagestyle{empty}
+\mbox{}
+
+
+\chapter*{\centering Declaration}
+\centerline{I declare that this thesis is entirely my own work unless otherwise stated.}
+\newpage
+\thispagestyle{empty}
+\mbox{}
+
+\mbox{}
+\thispagestyle{empty}
+\newpage
+
+\newgeometry{twoside}
+\begin{singlespace}
+\tableofcontents
+\end{singlespace}
+
+
+
+\chapter{Introduction}
+\input{chapters/introduction.tex}
+
+\chapter{The Algorithms}
+\input{chapters/thealgorithms.tex}
+
+\chapter{Evaluating Model Selection Algorithms}
+\input{chapters/evaluatingalgorithms}
+
+\chapter{An Application: Using Automatic Model Selection for Nowcasting}
+\input{chapters/nowcasting}
+
+\chapter{Conclusion}
+\input{chapters/conclusion}
+
+
+
+\nocite{hendryjohansensantos}
+\nocite{johansennielsen2009}
+\nocite{ridgeregression70}
+\nocite{spikeandslab}
+\nocite{doornik2009}
+\nocite{evalmodelsel}
+\nocite{lassovauto}
+%\nocite{campos2009}
+\nocite{bstspaper}
+\nocite{hendrykrolzig1999}
+\nocite{hendrykrolzig2005}
+\nocite{tibshirani}
+\nocite{degreesoffreedomlasso}
+\nocite{chechen}
+\nocite{efronetal2004}
+\nocite{zhangetal}
+\nocite{kalmanfilter}
+\nocite{introstatisticallearning}
+\nocite{durbinkoopman2001}
+\nocite{hendrydoornikbook}
+\nocite{castleshephard2009}
+\nocite{robertcasella2004}
+\nocite{renfro2009}
+\nocite{georgemcculloh}
+\nocite{carterkohn2004}
+\nocite{EricDFHSH14MF}
+\nocite{WUBRYN2013}
+\nocite{WEBB2009}
+\nocite{CDHPSIS15}
+\nocite{zouhastie}
+\nocite{WhitePaper}
+
+\bibliographystyle{apalike}
+\bibliography{references}
+\renewcommand*{\bibname}{Literaturliste}
+
+
+
+
+
+\end{document}
